@@ -160,3 +160,5 @@ public class OwnSimpleHostRoutingFilter extends SimpleHostRoutingFilter {
                 response.getEntity() == null ? null : response.getEntity().getContent(),
                 revertHeaders(response.getAllHeaders()));
     }
+
+    
