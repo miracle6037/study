@@ -1,0 +1,137 @@
+思路介绍
+首先使用vue-cli脚手架工具搭建好前台框架，随后通过maven将Spring boot 后台和vue前台进行整合。重点就在于这个maven的pom配置该如何写。
+
+后台pom文件没有什么特殊的地方，前台pom的话，其主要思路是： 
+- Step 1: npm install 
+- Step 2: npm run build 
+- Step 3: 删除Spring boot后台public下的文件 
+- Step 4:将npm run build产生的编译文件拷贝到后台的public下，至此完成。
+
+前台配置介绍
+首先，请在机器上下载并安装node.js。这是必备的步骤。
+
+找到frontend/config/index.js文件并替换以下行：
+
+index: path.resolve(__dirname, '../dist/index.html'),
+assetsRoot: path.resolve(__dirname, '../dist'),
+同
+
+index: path.resolve(__dirname, '../target/dist/index.html'),
+assetsRoot: path.resolve(__dirname, '../target/dist'),
+编写pom如下：
+
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>SpringBoot-Vue</artifactId>
+        <groupId>com.zju.study</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>frontend</artifactId>
+
+    <!--考虑到window 和linux环境 npm命令格式的问题，使用maven的profile实现动态指定命令 Linux/mac下，请使用mvn install -P linux进行install-->
+    <profiles>   
+        <profile>
+            <id>window</id>
+            <properties>
+                <npm>npm.cmd</npm>
+            </properties>
+           <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+        </profile>
+        <profile>
+            <id>linux</id>
+            <properties>
+                <npm>npm</npm>
+            </properties>
+
+        </profile>
+    </profiles>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.4.0</version>
+                <executions>
+
+                  <execution>
+                    <id>exec-set-registry</id>
+                    <phase>prepare-package</phase>
+                    <goals>
+                      <goal>exec</goal>
+                    </goals>
+                    <configuration>
+                      <executable>${npm}</executable>
+                        <arguments>
+                          <argument>config</argument>
+                          <argument>set</argument>
+                          <argument>registry</argument>
+                          <argument>https://registry.npm.taobao.org</argument>
+                        </arguments>
+                     </configuration>
+                  </execution>
+
+                    <execution>
+                        <id>exec-npm-install</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>${npm}</executable>
+                            <arguments>
+                                <argument>install</argument>
+                            </arguments>
+                            </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>exec-npm-run-build</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>${npm}</executable>
+                            <arguments>
+                                <argument>run</argument>
+                                <argument>build</argument>
+                            </arguments>
+                          </configuration>
+                    </execution>
+
+                </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>Copy App Content</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.parent.basedir}/backend/src/main/resources/public</outputDirectory>
+                            <overwrite>true</overwrite>
+                            <resources>
+                                <resource>
+                                    <directory>target/dist</directory>
+                                    <includes>
+                                        <include>static/</include>
+                                        <include>index.html</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
